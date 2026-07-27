@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SA&amp;ET // VANTAGE SOC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e14;
+    --panel:#111826;
+    --panel-alt:#161f2e;
+    --border:#22303f;
+    --text:#dbe4ee;
+    --text-dim:#66768a;
+    --accent:#2dd4bf;
+    --accent-dim:#155e56;
+    --critical:#f43f5e;
+    --high:#fb923c;
+    --medium:#facc15;
+    --low:#4ade80;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  body{min-height:100vh;}
+  ::selection{background:var(--accent-dim);color:#fff;}
+  input,select,textarea,button{font-family:inherit;color:var(--text);}
+
+  .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);}
+
+  /* ---- Top bar ---- */
+  .topbar{position:sticky;top:0;z-index:10;background:var(--panel);
+    border-bottom:1px solid var(--border);padding:14px 22px;
+    display:flex;align-items:center;justify-content:space-between;overflow:hidden;}
+  .topbar-left{display:flex;align-items:center;gap:12px;}
+  .brand{font-weight:700;font-size:15px;letter-spacing:.03em;}
+  .brand-sub{color:var(--text-dim);font-size:12px;}
+  .topbar-right{display:flex;align-items:center;gap:18px;font-size:12px;color:var(--text-dim);}
+  .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+  .status-ok{background:var(--low);box-shadow:0 0 6px var(--low);}
+  .status-bad{background:var(--critical);box-shadow:0 0 6px var(--critical);}
+  .scan-line{position:absolute;left:0;bottom:0;height:2px;width:40%;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);
+    animation:scan 3.2s linear infinite;}
+  @keyframes scan{
+    0%{transform:translateX(-100%);}
+    100%{transform:translateX(350%);}
+  }
+  @media (prefers-reduced-motion: reduce){ .scan-line{animation:none;} }
+
+  /* ---- Layout ---- */
+  .shell{display:flex;min-height:calc(100vh - 54px);}
+  .rail{width:200px;flex-shrink:0;background:var(--panel);
+    border-right:1px solid var(--border);padding:18px 0;}
+  .rail-item{display:flex;align-items:center;gap:10px;padding:11px 20px;
+    cursor:pointer;color:var(--text-dim);border-left:2px solid transparent;
+    font-size:13px;letter-spacing:.02em;}
+  .rail-item:hover{color:var(--text);background:var(--panel-alt);}
+  .rail-item.active{color:var(--accent);border-left:2px solid var(--accent);
+    background:var(--panel-alt);}
+  .rail-code{font-size:10px;color:var(--text-dim);border:1px solid var(--border);
+    border-radius:3px;padding:1px 5px;letter-spacing:.05em;}
+  .rail-item.active .rail-code{border-color:var(--accent);color:var(--accent);}
+
+  .main{flex:1;padding:26px 32px;max-width:980px;}
+  h1.page-title{font-size:18px;margin:0 0 4px 0;letter-spacing:.02em;}
+  p.page-desc{color:var(--text-dim);font-size:13px;margin:0 0 22px 0;}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;
+    padding:18px 20px;margin-bottom:18px;}
+  .panel-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-dim);margin-bottom:14px;border-bottom:1px solid var(--border);
+    padding-bottom:8px;}
+
+  .field-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;}
+  .field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:160px;}
+  .field label{font-size:11px;color:var(--text-dim);letter-spacing:.04em;}
+  .field input[type=text],.field input[type=number],.field select{
+    background:var(--bg);border:1px solid var(--border);border-radius:4px;
+    padding:8px 10px;font-size:13px;}
+  .field input:focus,.field select:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  .field input[type=range]{accent-color:var(--accent);}
+  .range-value{font-size:12px;color:var(--accent);}
+
+  .btn{background:var(--accent-dim);border:1px solid var(--accent);color:#eafffb;
+    padding:9px 18px;border-radius:4px;cursor:pointer;font-size:13px;letter-spacing:.03em;
+    font-weight:600;}
+  .btn:hover{background:var(--accent);color:#03201c;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .btn-row{display:flex;gap:10px;margin-top:6px;}
+
+  .msg-error{color:var(--critical);font-size:12px;margin-top:10px;
+    border-left:2px solid var(--critical);padding-left:8px;}
+  .msg-loading{color:var(--text-dim);font-size:12px;margin-top:10px;}
+
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;}
+  th{text-align:left;color:var(--text-dim);font-weight:500;font-size:11px;
+    letter-spacing:.04em;text-transform:uppercase;padding:6px 8px;
+    border-bottom:1px solid var(--border);}
+  td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  .tag{display:inline-block;background:var(--panel-alt);border:1px solid var(--border);
+    border-radius:3px;padding:1px 6px;font-size:10px;margin:1px 3px 1px 0;color:var(--text-dim);}
+
+  .badge{display:inline-block;padding:2px 9px;border-radius:3px;font-size:11px;
+    font-weight:700;letter-spacing:.03em;text-transform:uppercase;}
+  .badge-critical{background:rgba(244,63,94,.15);color:var(--critical);border:1px solid var(--critical);}
+  .badge-high{background:rgba(251,146,60,.15);color:var(--high);border:1px solid var(--high);}
+  .badge-medium{background:rgba(250,204,21,.15);color:var(--medium);border:1px solid var(--medium);}
+  .badge-low{background:rgba(74,222,128,.15);color:var(--low);border:1px solid var(--low);}
+
+  .bar-track{background:var(--bg);border:1px solid var(--border);border-radius:3px;
+    height:8px;overflow:hidden;margin-top:4px;}
+  .bar-fill{height:100%;background:var(--accent);}
+  .bar-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);}
+
+  .technique-card{border:1px solid var(--border);border-radius:5px;padding:12px 14px;
+    margin-bottom:10px;background:var(--panel-alt);}
+  .technique-head{display:flex;justify-content:space-between;align-items:baseline;
+    margin-bottom:8px;}
+  .technique-id{color:var(--accent);font-size:12px;font-weight:700;}
+  .technique-tactic{color:var(--text-dim);font-size:11px;}
+  .prd-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .prd-col h4{font-size:10px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--text-dim);margin:0 0 6px 0;}
+  .prd-col ul{margin:0;padding-left:16px;font-size:12px;line-height:1.5;}
+  @media (max-width:720px){.prd-grid{grid-template-columns:1fr;}}
+
+  .training-content{white-space:pre-wrap;font-size:13px;line-height:1.7;
+    background:var(--bg);border:1px solid var(--border);border-radius:4px;
+    padding:14px;margin-top:10px;}
+  .radio-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:4px;
+    overflow:hidden;width:fit-content;margin-bottom:10px;}
+  .radio-toggle button{border:none;background:var(--bg);color:var(--text-dim);
+    padding:7px 16px;font-size:12px;cursor:pointer;}
+  .radio-toggle button.active{background:var(--accent-dim);color:var(--accent);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+
+<script type="text/plain" id="app-source">
+const { useState, useEffect, useCallback, useRef } = React;
+
+const SECTORS = [
+  ["national_security", "ความมั่นคงของรัฐ"],
+  ["public_service", "บริการภาครัฐที่สำคัญ"],
+  ["finance_banking", "การเงินการธนาคาร"],
+  ["ict_telecom", "เทคโนโลยีสารสนเทศและโทรคมนาคม"],
+  ["transport_logistics", "การขนส่งและโลจิสติกส์"],
+  ["energy_utilities", "พลังงานและสาธารณูปโภค"],
+  ["public_health", "สาธารณสุข"],
+];
+
+function badgeClass(level) {
+  return "badge badge-" + (level || "low");
+}
+
+function LevelBadge({ level }) {
+  return <span className={badgeClass(level)}>{level}</span>;
+}
+
+function useApi(apiBase) {
+  const call = useCallback(async (path, opts) => {
+    const res = await fetch(apiBase + path, {
+      headers: { "Content-Type": "application/json" },
+      ...opts,
+    });
+    if (!res.ok) {
+      let detail = res.statusText;
+      try { const j = await res.json(); detail = j.detail || detail; } catch (e) {}
+      throw new Error(`${res.status}: ${detail}`);
+    }
+    return res.json();
+  }, [apiBase]);
+  return call;
+}
+
+function TopBar({ apiBase, setApiBase, healthy }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="topbar">
+      <div className="topbar-left">
+        <span className="brand">SA&amp;ET</span>
+        <span className="brand-sub">Situational Awareness &amp; Emerging Threats — VANTAGE SOC</span>
+      </div>
+      <div className="topbar-right">
+        <span>
+          <span className={"status-dot " + (healthy ? "status-ok" : "status-bad")}></span>
+          {healthy ? "API เชื่อมต่ออยู่" : "API ไม่ตอบสนอง"}
+        </span>
+        <input
+          type="text"
+          value={apiBase}
+          onChange={(e) => setApiBase(e.target.value)}
+          style={{
+            background: "var(--bg)", border: "1px solid var(--border)",
+            borderRadius: "4px", padding: "5px 8px", fontSize: "11px", width: "190px",
+          }}
+        />
+        <span>{now.toLocaleTimeString("th-TH", { hour12: false })}</span>
+      </div>
+      <div className="scan-line"></div>
+    </div>
+  );
+}
+
+function IOCSearchPanel({ api }) {
+  const [value, setValue] = useState("1.2.3.4");
+  const [iocType, setIocType] = useState("");
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const search = async () => {
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const q = new URLSearchParams({ value });
+      if (iocType) q.set("ioc_type", iocType);
+      const data = await api(`/api/v1/ioc/search?${q.toString()}`);
+      setResult(data);
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <h1 className="page-title">IOC Search</h1>
+      <p className="page-desc">ค้นหา Indicator of Compromise (IP, domain, hash) จาก Threat Intel Gateway</p>
+      <div className="panel">
+        <div className="field-row">
+          <div className="field">
+            <label>IOC VALUE</label>
+            <input type="text" value={value} onChange={(e) => setValue(e.target.value)} />
+          </div>
+          <div className="field">
+            <label>TYPE (OPTIONAL)</label>
+            <input type="text" placeholder="ip-dst, domain, sha256..." value={iocType}
+              onChange={(e) => setIocType(e.target.value)} />
+          </div>
+        </div>
+        <div className="btn-row">
+          <button className="btn" onClick={search} disabled={loading}>
+            {loading ? "กำลังค้นหา..." : "ค้นหา"}
+          </button>
+        </div>
+        {error && <div className="msg-error">{error}</div>}
+        {result && (
+          <div style={{ marginTop: "14px" }}>
+            <div className="eyebrow">
+              พบ {result.count} รายการ {result.degraded && "(โหมด degraded — ใช้ cache)"}
+            </div>
+            {result.results.length > 0 && (
+              <table>
+                <thead>
+                  <tr><th>Value</th><th>Type</th><th>Source</th><th>Tags</th><th>Confidence</th></tr>
+                </thead>
+                <tbody>
+                  {result.results.map((r, i) => (
+                    <tr key={i}>
+                      <td>{r.value}</td>
+                      <td>{r.type}</td>
+                      <td>{r.source}</td>
+                      <td>{(r.tags || []).map((t, j) => <span className="tag" key={j}>{t}</span>)}</td>
+                      <td>{r.confidence ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OrgAssessPanel({ api }) {
+  const [mode, setMode] = useState("sector");
+  const [sector, setSector] = useState(SECTORS[2][0]);
+  const [domain, setDomain] = useState("examplebank.co.th");
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const assess = async () => {
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const q = new URLSearchParams(mode === "sector" ? { sector } : { domain });
+      const data = await api(`/api/v1/org/assess?${q.toString()}`);
+      setResult(data);
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <h1 className="page-title">CII Sector / Domain Assessment</h1>
+      <p className="page-desc">ระบุ sector ตรงๆ หรือใส่ domain ให้ระบบเดา sector ให้ (passive recon)</p>
+      <div className="panel">
+        <div className="radio-toggle">
+          <button className={mode === "sector" ? "active" : ""} onClick={() => setMode("sector")}>Sector</button>
+          <button className={mode === "domain" ? "active" : ""} onClick={() => setMode("domain")}>Domain</button>
+        </div>
+        {mode === "sector" ? (
+          <div className="field" style={{ maxWidth: "360px" }}>
+            <label>CII SECTOR</label>
+            <select value={sector} onChange={(e) => setSector(e.target.value)}>
+              {SECTORS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div className="field" style={{ maxWidth: "360px" }}>
+            <label>DOMAIN NAME</label>
+            <input type="text" value={domain} onChange={(e) => setDomain(e.target.value)} />
+          </div>
+        )}
+        <div className="btn-row">
+          <button className="btn" onClick={assess} disabled={loading}>
+            {loading ? "กำลังวิเคราะห์..." : "วิเคราะห์"}
+          </button>
+        </div>
+        {error && <div className="msg-error">{error}</div>}
+        {result && (
+          <div style={{ marginTop: "14px" }}>
+            <div className="eyebrow">
+              จับคู่ sector: <span style={{ color: "var(--accent)" }}>{result.matched_sector_label_th}</span>
+              {"  "}(confidence {Math.round(result.sector_confidence * 100)}%)
+            </div>
+            {result.relevant_threats.length === 0 ? (
+              <p style={{ color: "var(--text-dim)", fontSize: "12px" }}>ไม่มี threat event active ใน sector นี้ตอนนี้</p>
+            ) : (
+              <table>
+                <thead><tr><th>Threat</th><th>Published</th><th>TTPs</th></tr></thead>
+                <tbody>
+                  {result.relevant_threats.map((t, i) => (
+                    <tr key={i}>
+                      <td>{t.title}</td>
+                      <td>{new Date(t.published).toLocaleDateString("th-TH")}</td>
+                      <td>{(t.ttp_ids || []).map((id, j) => <span className="tag" key={j}>{id}</span>)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AttackMappingPanel({ api }) {
+  const [sector, setSector] = useState(SECTORS[2][0]);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchMapping = async () => {
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const data = await api(`/api/v1/attack/mapping?sector=${sector}`);
+      setResult(data);
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <h1 className="page-title">MITRE ATT&amp;CK Mapping</h1>
+      <p className="page-desc">ดู technique ที่เกี่ยวข้องกับ threat active ใน sector พร้อมคำแนะนำ Prevent / Detect / Respond</p>
+      <div className="panel">
+        <div className="field-row">
+          <div className="field" style={{ maxWidth: "360px" }}>
+            <label>CII SECTOR</label>
+            <select value={sector} onChange={(e) => setSector(e.target.value)}>
+              {SECTORS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="btn-row">
+          <button className="btn" onClick={fetchMapping} disabled={loading}>
+            {loading ? "กำลังโหลด..." : "ดู Mapping"}
+          </button>
+        </div>
+        {error && <div className="msg-error">{error}</div>}
+        {result && (
+          <div style={{ marginTop: "14px" }}>
+            <div className="eyebrow">{result.threat_count} threat event(s) active</div>
+            {result.mapping.map((m, i) => (
+              <div key={i} style={{ marginTop: "12px" }}>
+                <div style={{ fontSize: "13px", marginBottom: "6px" }}>▸ {m.threat_title}</div>
+                {m.techniques.length === 0 && (
+                  <p style={{ color: "var(--text-dim)", fontSize: "12px" }}>ไม่พบ technique ที่ map ได้</p>
+                )}
+                {m.techniques.map((t, j) => (
+                  <div className="technique-card" key={j}>
+                    <div className="technique-head">
+                      <span><span className="technique-id">{t.technique_id}</span> — {t.name}</span>
+                      <span className="technique-tactic">{t.tactic}</span>
+                    </div>
+                    <div className="prd-grid">
+                      <div className="prd-col">
+                        <h4>Prevent</h4>
+                        <ul>{t.prevent.map((x, k) => <li key={k}>{x}</li>)}</ul>
+                      </div>
+                      <div className="prd-col">
+                        <h4>Detect</h4>
+                        <ul>{t.detect.map((x, k) => <li key={k}>{x}</li>)}</ul>
+                      </div>
+                      <div className="prd-col">
+                        <h4>Respond</h4>
+                        <ul>{t.respond.map((x, k) => <li key={k}>{x}</li>)}</ul>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RiskTrainingPanel({ api }) {
+  const [employee, setEmployee] = useState({
+    id: "emp-001", name: "Somchai", department: "Finance",
+    access_level: "standard", recent_phishing_click_rate: 0.2,
+    completed_trainings: "",
+  });
+  const [sector, setSector] = useState(SECTORS[2][0]);
+  const [riskResult, setRiskResult] = useState(null);
+  const [trainingResult, setTrainingResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [loadingRisk, setLoadingRisk] = useState(false);
+  const [loadingTraining, setLoadingTraining] = useState(false);
+
+  const buildBody = () => ({
+    employee: {
+      id: employee.id, name: employee.name, department: employee.department,
+      access_level: employee.access_level,
+      recent_phishing_click_rate: parseFloat(employee.recent_phishing_click_rate),
+      completed_trainings: employee.completed_trainings
+        ? employee.completed_trainings.split(",").map((s) => s.trim()).filter(Boolean)
+        : [],
+    },
+    sector,
+  });
+
+  const scoreRisk = async () => {
+    setLoadingRisk(true); setError(null); setRiskResult(null); setTrainingResult(null);
+    try {
+      const data = await api("/api/v1/risk/score", { method: "POST", body: JSON.stringify(buildBody()) });
+      setRiskResult(data);
+    } catch (e) { setError(e.message); }
+    setLoadingRisk(false);
+  };
+
+  const generateTraining = async () => {
+    setLoadingTraining(true); setError(null);
+    try {
+      const data = await api("/api/v1/training/generate", { method: "POST", body: JSON.stringify(buildBody()) });
+      setTrainingResult(data);
+      setRiskResult({
+        employee_id: data.employee_id, total_score: data.risk_total_score,
+        level: data.risk_level, breakdown: riskResult ? riskResult.breakdown : null,
+        recommended_training_tags: riskResult ? riskResult.recommended_training_tags : [],
+      });
+    } catch (e) { setError(e.message); }
+    setLoadingTraining(false);
+  };
+
+  return (
+    <div>
+      <h1 className="page-title">Risk Engine &amp; Training</h1>
+      <p className="page-desc">คำนวณ Risk Score รายพนักงานจากสิทธิ์การเข้าถึง พฤติกรรม และภัยคุกคามที่ active แล้วสร้างเนื้อหา training ที่ตรงจุด</p>
+
+      <div className="panel">
+        <div className="panel-title">ข้อมูลพนักงาน</div>
+        <div className="field-row">
+          <div className="field">
+            <label>ID</label>
+            <input type="text" value={employee.id} onChange={(e) => setEmployee({ ...employee, id: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>ชื่อ</label>
+            <input type="text" value={employee.name} onChange={(e) => setEmployee({ ...employee, name: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>แผนก</label>
+            <input type="text" value={employee.department} onChange={(e) => setEmployee({ ...employee, department: e.target.value })} />
+          </div>
+        </div>
+        <div className="field-row">
+          <div className="field">
+            <label>ACCESS LEVEL</label>
+            <select value={employee.access_level} onChange={(e) => setEmployee({ ...employee, access_level: e.target.value })}>
+              <option value="standard">Standard</option>
+              <option value="privileged">Privileged</option>
+              <option value="executive">Executive</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>PHISHING CLICK RATE ({Math.round(employee.recent_phishing_click_rate * 100)}%)</label>
+            <input type="range" min="0" max="1" step="0.05" value={employee.recent_phishing_click_rate}
+              onChange={(e) => setEmployee({ ...employee, recent_phishing_click_rate: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>TRAINING ที่ผ่านแล้ว (คั่นด้วย comma)</label>
+            <input type="text" placeholder="Phishing, Valid Accounts" value={employee.completed_trainings}
+              onChange={(e) => setEmployee({ ...employee, completed_trainings: e.target.value })} />
+          </div>
+        </div>
+        <div className="field-row">
+          <div className="field" style={{ maxWidth: "320px" }}>
+            <label>CII SECTOR</label>
+            <select value={sector} onChange={(e) => setSector(e.target.value)}>
+              {SECTORS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="btn-row">
+          <button className="btn" onClick={scoreRisk} disabled={loadingRisk}>
+            {loadingRisk ? "กำลังคำนวณ..." : "คำนวณ Risk Score"}
+          </button>
+          <button className="btn" onClick={generateTraining} disabled={loadingTraining}>
+            {loadingTraining ? "กำลังสร้าง..." : "สร้าง Training Content"}
+          </button>
+        </div>
+        {error && <div className="msg-error">{error}</div>}
+      </div>
+
+      {riskResult && (
+        <div className="panel">
+          <div className="panel-title">Risk Score</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+            <span style={{ fontSize: "28px", fontWeight: 700 }}>{riskResult.total_score}</span>
+            <LevelBadge level={riskResult.level} />
+          </div>
+          {riskResult.breakdown && (
+            <div style={{ display: "grid", gap: "10px" }}>
+              {["exposure", "behavior", "threat_landscape"].map((k) => (
+                <div key={k}>
+                  <div className="bar-label"><span>{k}</span><span>{riskResult.breakdown[k]}</span></div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: riskResult.breakdown[k] + "%" }}></div></div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {trainingResult && (
+        <div className="panel">
+          <div className="panel-title">Training Content — {trainingResult.training.title_th}</div>
+          <div className="eyebrow">
+            priority: <LevelBadge level={trainingResult.training.priority} />
+            {"  "}generated_by: {trainingResult.training.generated_by}
+          </div>
+          <div className="training-content">{trainingResult.training.content_th}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [apiBase, setApiBase] = useState("http://localhost:8000");
+  const [tab, setTab] = useState("ioc");
+  const [healthy, setHealthy] = useState(false);
+  const api = useApi(apiBase);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ping = async () => {
+      try {
+        const res = await fetch(apiBase + "/health");
+        if (!cancelled) setHealthy(res.ok);
+      } catch (e) {
+        if (!cancelled) setHealthy(false);
+      }
+    };
+    ping();
+    const t = setInterval(ping, 8000);
+    return () => { cancelled = true; clearInterval(t); };
+  }, [apiBase]);
+
+  const NAV = [
+    ["ioc", "IOC", "IOC Search"],
+    ["org", "ORG", "Sector / Domain"],
+    ["attack", "ATT&CK", "ATT&CK Mapping"],
+    ["risk", "RISK", "Risk & Training"],
+  ];
+
+  return (
+    <div>
+      <TopBar apiBase={apiBase} setApiBase={setApiBase} healthy={healthy} />
+      <div className="shell">
+        <div className="rail">
+          {NAV.map(([key, code, label]) => (
+            <div key={key} className={"rail-item" + (tab === key ? " active" : "")} onClick={() => setTab(key)}>
+              <span className="rail-code">{code}</span>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="main">
+          {tab === "ioc" && <IOCSearchPanel api={api} />}
+          {tab === "org" && <OrgAssessPanel api={api} />}
+          {tab === "attack" && <AttackMappingPanel api={api} />}
+          {tab === "risk" && <RiskTrainingPanel api={api} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+<script>
+  // Transform ด้วย classic runtime แบบตั้งใจ (ไม่ใช้ automatic runtime ของ Babel รุ่นใหม่
+  // ซึ่ง inject `import ... from "react/jsx-runtime"` ที่ใช้ไม่ได้ใน plain <script> ธรรมดา)
+  const jsxSource = document.getElementById("app-source").textContent;
+  const { code } = Babel.transform(jsxSource, {
+    presets: [["react", { runtime: "classic" }]],
+  });
+  const script = document.createElement("script");
+  script.textContent = code;
+  document.body.appendChild(script);
+</script>
+</body>
+</html>
