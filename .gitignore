@@ -1,0 +1,15 @@
+# ละเว้นโฟลเดอร์ Virtual Environment
+venv/
+.venv/
+env/
+
+# ละเว้นไฟล์ Environment & Secrets (สำคัญมาก)
+.env
+
+# ละเว้น Python Cache Files
+__pycache__/
+*.pyc
+
+# ละเว้น IDE config
+.vscode/
+.idea/
